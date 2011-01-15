@@ -58,13 +58,21 @@ class wpTournaments {
 <hr />
 
 <?php
-		//var_dump(delete_post_meta($post->ID, 'team_count'));
-		$posts = (get_post_meta($post->ID, 'team_count'));
+		$posts = (get_post_meta($post->ID, 'round_1'));
 		foreach ($posts[0] as $index => $item) {
 ?>
 <form>
 <?php echo($post_list[$item['team_a']]); ?>
-<input type="submit" value="Winner" name="winner" />
+<input type="submit" value="Winner" name="winner_submit" />
+<input type="hidden" value="1" name="round" />
+<input type="hidden" 
+	value="<?php echo $item['team_a'] ?>"
+	name="post_id"
+/>
+<input type="hidden"
+	value="<?php echo $index ?>"
+	name="position"
+/>
 </form>
 <form>
 <?php	echo($post_list[$item['team_b']]); ?>
@@ -94,7 +102,7 @@ class wpTournaments {
 	function wp_insert_post($post_id, $post = null) {
 		if ($post->post_type == "Tournaments") {
 			if ($_POST['add-new']) {
-				$key = 'team_count';
+				$key = 'round_1';
 				$current = get_post_meta($post->ID, $key);
 				$current[0][] = array(
 					'team_a' => $_POST['team_a'], 
@@ -109,6 +117,22 @@ class wpTournaments {
 						))
 					);
 				}
+			} elseif($_POST['winner_submit']) {
+				$next_round =  $_POST['round'] + 1;
+				$key = 'round_' . $next_round;
+				$position = floor($_POST['position'] / 2);
+				$order = $_POST['position'] % 2;
+				if ($order == 0) {
+					$order = 'team_a';
+				} else {
+					$order = 'team_b';
+				}
+				$current = get_post_meta($post->ID, $key);
+				$current[$position][$order] = $_POST['post_id'];
+				if (!update_post_meta($post_id, $key, $current)) {
+					add_post_meta($post_id, $key, $current);
+				}
+
 			}
 			// Loop through the POST data
 			foreach ($this->meta_fields as $key) {
